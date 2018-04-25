@@ -120,6 +120,9 @@ class ReducedPermutation(object):
         if not isinstance(reduced, Permutation):
             raise ValueError()
     
+    def get_reduced(self):
+        return self._reduced
+    
     def reduce(self, p):
         """Reduce this permutation with p.
         
@@ -130,7 +133,7 @@ class ReducedPermutation(object):
         self_keys = self._reduced.keys()
         p_keys = p._reduced.keys()
         
-        keys = self_keys.union(p_keys)
+        keys = set().union(self_keys, p_keys)
         ret = dict()
         reduced = False
         
@@ -167,3 +170,26 @@ class ReducedPermutation(object):
     def from_permutation(perm):
         return ReducedPermutation(set([ perm ]), perm)
 
+
+def _test():
+    # permutations of a,b,c,d
+    for val in Permutation.generate_values(['a', 'b', 'c', 'd']):
+        print(val)
+    
+    # reducing
+    a = ReducedPermutation.from_permutation(Permutation({ 'a': True, 'b': False }))
+    b = ReducedPermutation.from_permutation(Permutation({ 'a': False, 'b': False }))
+    print(a.reduce(b))
+    a = ReducedPermutation.from_permutation(Permutation({ 'a': True, 'b': False }))
+    b = ReducedPermutation.from_permutation(Permutation({ 'a': False, 'b': True }))
+    print(a.reduce(b))
+    a = ReducedPermutation.from_permutation(Permutation({ 'a': True, 'b': None }))
+    b = ReducedPermutation.from_permutation(Permutation({ 'a': False, 'b': None }))
+    print(a.reduce(b))
+    a = ReducedPermutation.from_permutation(Permutation({ 'a': True, 'b': False }))
+    b = ReducedPermutation.from_permutation(Permutation({ 'a': True, 'b': None }))
+    print(a.reduce(b))
+
+
+if __name__ == '__main__':
+    _test();

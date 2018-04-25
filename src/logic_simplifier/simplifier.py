@@ -1,6 +1,6 @@
 from collections import defaultdict
 from logic_simplifier.parser import parse
-from logic_simplifier.perm import ReducedPermutation, Permutation
+from logic_simplifier.perm import ReducedPermutation
 
 
 class SimplificationTable(object):
@@ -30,10 +30,15 @@ class SimplificationTable(object):
         # and initialize a new stage
         newstage = defaultdict(lambda: set())
         
-        # gid = 1's count
+        # for each group
         for gid, perms in stage.items():
+            # if it's the last group, skip it
             if not (gid + 1) in stage: continue
+            
+            # for each permutation from this group
             for perm in perms:
+                # for each corresponding permutation
+                #   from next stage
                 for perm2 in stage[gid + 1]:
                     reduced = perm.reduce(perm2)
                     if reduced != None:
@@ -42,7 +47,7 @@ class SimplificationTable(object):
                         perm.processed = True
                         perm2.processed = True
         
-        # if stage is not empty, append it
+        # if newstage is not empty, append it
         if newstage:
             self._stages.append(newstage)
             return True
@@ -67,7 +72,12 @@ class SimplificationTable(object):
                     handler(perm)
     
     def results(self):
-        "Gathers resulting permutations from all stages."
+        """Gathers resulting permutations from all stages.
+        
+        It will not return duplicated permutations, i.e. when
+        permutation A was reduced from B and C, then neither B
+        nor C will be returned.
+        """
         
         ret = set()  # returned value
         
@@ -80,11 +90,20 @@ class SimplificationTable(object):
         return ret
     
     def grouped_results(self):
-        """grouped by ReducedPermutation.from"""
+        """Return grouped results.
+        
+        They are grouped by permutations. Dictionary in the
+        following form is returned:
+        
+            { permutation: set of reduced permutations, ... }
+        
+        """
+        
         grouped = defaultdict(lambda: set())
         for reduced in self.results():
             for f in reduced._perms:
                 grouped[f].add(reduced)
+        
         return grouped
     
     def essential_results(self):
@@ -143,7 +162,11 @@ def main():
     
     gv.fill_stages()
     
-    print(gv)
+    for r in gv.results():
+        print(r.get_reduced())
+    
+    return
+    
     print(gv.essential_results())
     for reduced in gv.essential_results():
         print(reduced._reduced)

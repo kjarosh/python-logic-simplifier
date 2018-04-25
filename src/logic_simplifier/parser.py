@@ -12,7 +12,7 @@ class Parser(object):
         { '>' },
         { '|' },
         { '^' },
-        { '&' }  # highest priority
+        { '&' },  # highest priority
     ]
     """List of sets of operators with given priorities.
     
