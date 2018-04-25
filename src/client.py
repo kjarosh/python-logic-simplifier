@@ -7,6 +7,8 @@ from logic_simplifier.simplifier import simplify
 
 def main():
     for line in fileinput.input():
+        if len(line.strip()) == 0: continue
+        
         print(simplify(line))
 
 
