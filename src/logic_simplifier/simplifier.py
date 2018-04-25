@@ -2,48 +2,80 @@ from collections import defaultdict
 from logic_simplifier.parser import parse
 
 
-class PermutationTable(object):
-    # _stages - list of grouped permutations
-    #             [ {0: set(perms), 1: set(perms)}, ... ]
+class SimplificationTable(object):
+    "Proper implementation of the Quine–McCluskey algorithm"
     
     def __init__(self, grouped):
         self._stages = [grouped]
+        """List of stages.
+        
+        Every stage consists of grouped permutations, i.e. a dictionary
+        
+            { n: set, ... }
+        
+        where 'n' is a number of 1's and 'set' is a set of permutation
+        which have 'n' ones.
+        """
     
     def next_stage(self):
-        # get last stage
-        group = self._stages[-1]
-        newgroup = defaultdict(lambda: set())
+        """Processes the last stage.
         
-        # gid = no of 1s
-        for gid, perms in group.items():
-            if not (gid + 1) in group: continue
+        If any new reduced permutations are available, it appends the
+        new stage and returns 'True'. Otherwise it returns 'False'.
+        """
+        
+        # get last stage
+        stage = self._stages[-1]
+        # and initialize a new stage
+        newstage = defaultdict(lambda: set())
+        
+        # gid = 1's count
+        for gid, perms in stage.items():
+            if not (gid + 1) in stage: continue
             for perm in perms:
-                for perm2 in group[gid + 1]:
+                for perm2 in stage[gid + 1]:
                     reduced = perm.reduce(perm2)
                     if reduced != None:
                         # can reduce
-                        newgroup[gid].add(reduced)
+                        newstage[gid].add(reduced)
                         perm.processed = True
                         perm2.processed = True
         
-        if newgroup:
-            print(newgroup)
-            self._stages.append(newgroup)
+        # if stage is not empty, append it
+        if newstage:
+            self._stages.append(newstage)
             return True
         
         return False
     
     def fill_stages(self):
+        "Processes stages until no more reductions may be made."
+        
         while self.next_stage():
             continue
     
-    def results(self):
-        ret = set()
-        for group in self._stages:
-            for _, perms in group.items():
+    def each_permutation(self, handler):
+        "Executes 'handler' for each permutation in each stage."
+        
+        # for each stage
+        for stage in self._stages:
+            # for each group in stage
+            for _, perms in stage.items():
+                # for each permutation in group
                 for perm in perms:
-                    if not hasattr(perm, 'processed'):
-                        ret.add(perm)
+                    handler(perm)
+    
+    def results(self):
+        "Gathers resulting permutations from all stages."
+        
+        ret = set() # returned value
+        
+        def handler(perm):
+            if not hasattr(perm, 'processed'):
+                ret.add(perm)
+        
+        self.each_permutation(handler);
+        
         return ret
     
     def grouped_results(self):
@@ -80,7 +112,7 @@ class PermutationTable(object):
         return ret
     
     def __str__(self):
-        ret = 'PermutationTable(\n'
+        ret = 'SimplificationTable(\n'
         for stage in self._stages:
             ret += '== Stage\n'
             for gid, perms in stage.items():
@@ -99,7 +131,7 @@ class PermutationTable(object):
         for val in values:
             reduced = ReducedPermutation.from_permutation(val)
             ret[val.count_positives()].append(reduced)
-        return PermutationTable(ret)
+        return SimplificationTable(ret)
 
 
 class ReducedPermutation(object):
@@ -207,7 +239,7 @@ def main():
     # parsed = parse('~a&b&~c&~d | a&~b&~c&d | a&~b&~c&~d')
     parsed = parse('~a&b&~c&~d | a&~b&~c&~d | a&~b&~c&d | a&~b&c&~d | a&~b&c&d | a&b&~c&~d | a&b&c&~d | a&b&c&d')
     print(parsed)
-    gv = PermutationTable.for_expr(parsed)
+    gv = SimplificationTable.for_expr(parsed)
     
     gv.fill_stages()
     
