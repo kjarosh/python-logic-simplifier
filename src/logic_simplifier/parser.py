@@ -6,6 +6,10 @@ into an expression tree, defined in 'logic_simplifier.expr'.
 from logic_simplifier.expr import Operator, Negation, FalseVal, TrueVal, Variable
 
 
+class ParseException(Exception):
+    pass
+
+
 class Parser(object):
     _ops = [
         { '=' },  # lowest priority
@@ -34,7 +38,7 @@ class Parser(object):
         
         if self._pos != len(self._data):
             # not everything has been parsed
-            raise RuntimeError('unexpected ' + self._data[self._pos])
+            raise ParseException('unexpected ' + self._data[self._pos])
         
         return parsed
     
@@ -75,7 +79,7 @@ class Parser(object):
             expr = self._parseexpr()
             
             if self._next() != ')':
-                raise RuntimeError('expected )')
+                raise ParseException('expected )')
             
             self._skips()
             
@@ -94,20 +98,32 @@ class Parser(object):
                 var += self._next()
                 
             self._skips()
+            
+            if len(var) == 0:
+                raise ParseException('expected variable name')
+            
             return Variable(var)
     
     def _look(self):
+        "Returns value at the current position."
+        
         return self._data[self._pos]
     
     def _next(self):
+        "Moves to the next position and returns value at the old position."
+        
         ret = self._data[self._pos]
         self._pos += 1
         return ret
     
     def _end(self):
+        "Check whether end has been reached."
+        
         return self._pos >= len(self._data)
     
     def _skips(self):
+        "Skip space."
+        
         while not self._end() and self._look() == ' ':
             self._pos += 1
 
@@ -124,7 +140,7 @@ def _test_parse(expr):
         print(str(expr).ljust(16) + '  ->  ' + 'Invalid syntax')
 
 
-def test():
+def _test():
     _test_parse('a&b')
     _test_parse('a|~b')
     _test_parse('(~a & b) |c')
@@ -149,4 +165,4 @@ def test():
 
 
 if __name__ == '__main__':
-    test()
+    _test()
