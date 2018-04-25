@@ -17,12 +17,40 @@ class SimplificationTable(object):
         where 'n' is a number of 1's and 'set' is a set of permutation
         which have 'n' ones.
         """
+        
+        def _default_measure(res):
+            ret = 0
+            for perm in res:
+                ret += len(perm.get_reduced().keys())
+            return ret
+        
+        self.measure = _default_measure
+        """A measure used for results.
+        
+        A function that returns a comparable object for given
+        set of reduced permutations.
+        
+        The algorithm will minimize reduced results based on value returned
+        by this measure.
+        
+        By default it minimizes for number of terms in and-or-and
+        expression. For example, for:
+        
+            a & ~b | b & c
+        
+        the measure will return 4, as there are 4 terms.
+        
+        The result given as an argument is in the same format as the
+        value returned by 'results()'.
+        """
     
     def next_stage(self):
         """Processes the last stage.
         
         If any new reduced permutations are available, it appends the
         new stage and returns 'True'. Otherwise it returns 'False'.
+        
+        This is the core method for the Quine–McCluskey algorithm.
         """
         
         # get last stage
@@ -55,7 +83,7 @@ class SimplificationTable(object):
         return False
     
     def fill_stages(self):
-        "Processes stages until no more reductions may be made."
+        "Processes stages until no more reductions can be done."
         
         while self.next_stage():
             continue
@@ -77,6 +105,11 @@ class SimplificationTable(object):
         It will not return duplicated permutations, i.e. when
         permutation A was reduced from B and C, then neither B
         nor C will be returned.
+        
+        The returned value is a set of reduced permutations.
+        Its representation is following: each reduced permutation
+        shall be treated as a conjunction, between reduced permutations
+        there shall be a disjunction sign.
         """
         
         ret = set()  # returned value
@@ -92,11 +125,12 @@ class SimplificationTable(object):
     def grouped_results(self):
         """Return grouped results.
         
-        They are grouped by permutations. Dictionary in the
+        They are grouped by permutations. A dictionary in the
         following form is returned:
         
             { permutation: set of reduced permutations, ... }
         
+        Each dictionary entry is a group.
         """
         
         grouped = defaultdict(lambda: set())
@@ -106,14 +140,13 @@ class SimplificationTable(object):
         
         return grouped
     
-    def _max_essential_degree(self, grouped):
-        ret = 0
-        for _, reduced in grouped.items():
-            degree = len(reduced)
-            ret = max(ret, degree)
-        return ret
-    
     def _exclude_reduced(self, grouped, to_exclude):
+        """Exclude given reduced permutation from the grouped permutations.
+        
+        It means that each group which contains 'to_exclude' will be removed.
+        This method returns a modified copy of the grouped results.
+        """
+        
         ret = grouped.copy()
         
         # search for other permutations
@@ -125,43 +158,69 @@ class SimplificationTable(object):
         
         return ret
     
-    def _extract_essential(self, grouped, degree=1):
-        taken = False
+    def _extract_essentials(self, grouped):
+        """Extracts all essentials from a group with the minimal degree.
+        
+        An 'essential' with a 'degree' D is a reduced permutation from a group
+        that has exactly D reduced permutations. Each such group will have
+        exactly D essentials.
+        
+        The algorithm needs to select the best one in each iteration. They are
+        chosen with respect to the measure.
+        """
+        
+        min_degree = None
+        min_reduced = None
+        
         for _, reduced in grouped.items():
             # we want only essential terms
             #   with the given degree
-            if len(reduced) == degree:
-                taken = True
-                break
+            if min_degree == None or len(reduced) < min_degree:
+                min_reduced = reduced
         
-        if not taken: return (None, grouped)
+        if min_reduced == None: return {}
         
-        # it's an essential term
-        essential = reduced.pop()
+        ret = {}
         
-        grouped = self._exclude_reduced(grouped, essential)
-        
-        return (essential, grouped)
-    
-    def _minimal_results_for(self, grouped):
-        ret = set()
-        
-        # while there are permutations
-        while grouped:
-            # search for an essential term
-            essential, grouped = self._extract_essential(grouped)
-            
-            if essential != None:
-                ret.add(essential)
-                continue
-            
-            # no essential terms
-            print(dict(grouped))
-            raise NotImplementedError()
+        # it's an essential term,
+        #   return every possibility
+        for essential in min_reduced:
+            ret[essential] = self._exclude_reduced(grouped, essential)
         
         return ret
     
+    def _minimal_results_for(self, grouped):
+        """Minimize result for the given grouped results.
+        
+        Grouped results are in the format described in 'grouped_results()'.
+        
+        The returned value is in the format returned by 'results()'.
+        """
+        
+        min_res = None
+        
+        # for every essential
+        for essential, extracted in self._extract_essentials(grouped).items():
+            # minimize!
+            res = self._minimal_results_for(extracted)
+            res.append(essential)
+            if min_res == None or \
+                    self.measure(res) < self.measure(min_res):
+                min_res = res
+        
+        if min_res != None:
+            # essentials found
+            return min_res
+        
+        # no essentials :(
+        return []
+    
     def minimal_results(self):
+        """Minimize result set from 'results()'.
+        
+        The returned value is in the format returned by 'results()'.
+        """
+        
         return self._minimal_results_for(self.grouped_results())
     
     def __str__(self):
@@ -189,14 +248,14 @@ class SimplificationTable(object):
 
 def main():
     # parsed = parse('~a&b&~c&~d | a&~b&~c&d | a&~b&~c&~d')
-    #parsed = parse('b | ~b')
-    #parsed = parse('b & ~b')
+    # parsed = parse('b | ~b')
+    # parsed = parse('b & ~b')
     
     # example from Wikipedia Quine–McCluskey_algorithm
-    parsed = parse('~a&b&~c&~d | a&~b&~c&~d | a&~b&~c&d | a&~b&c&~d | a&~b&c&d | a&b&~c&~d | a&b&c&~d | a&b&c&d')
+    # parsed = parse('~a&b&~c&~d | a&~b&~c&~d | a&~b&~c&d | a&~b&c&~d | a&~b&c&d | a&b&~c&~d | a&b&c&~d | a&b&c&d')
     
     # example from Wikipedia Petrick's_method
-    parsed = parse('~a&~b&~c&~d | ~a&~b&~c&d | ~a&~b&c&~d | ~a&~b&~c&d | ~a&b&c&~d | ~a&b&c&d')
+    parsed = parse('~a&~b&~c | ~a&~b&c | ~a&b&~c | ~a&~b&c | a&b&~c | a&b&c')
     
     print(parsed)
     gv = SimplificationTable.for_expr(parsed)
