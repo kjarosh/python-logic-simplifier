@@ -60,7 +60,7 @@ class Parser(object):
             self._skips()
             
             right = self._parsepri(pri + 1)
-            expr = Operator(expr, op, pri, right)
+            expr = Operator(expr, op, right)
         
         return expr
     

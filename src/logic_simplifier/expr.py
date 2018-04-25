@@ -8,7 +8,15 @@ used to describe the parsed expression.
 
 @author: Kamil Jarosz
 """
-from logic_simplifier.perm import Permutation
+import logic_simplifier
+
+_oppri = {
+    '=': 0,
+    '>': 1,
+    '|': 2,
+    '^': 3,
+    '&': 4
+}
 
 
 class InvalidOperatorException(Exception):
@@ -41,7 +49,7 @@ class Expression(object):
         "Generate permutations for which this expression evaluates to true."
         
         varlist = list(self.extract_vars())
-        for p in Permutation.generate_values(varlist):
+        for p in logic_simplifier.perm.Permutation.generate_values(varlist):
             if self.eval(p.values()): yield p
 
 
@@ -63,12 +71,12 @@ class Negation(Expression):
 
 class Operator(Expression):
 
-    def __init__(self, left, op, pri, right):
+    def __init__(self, left, op, right):
         self.left = left
         "Left expression"
         self.op = op
         "Operator type"
-        self.pri = pri
+        self.pri = _oppri[op]
         "Operator priority"
         self.right = right
         "Right expression"

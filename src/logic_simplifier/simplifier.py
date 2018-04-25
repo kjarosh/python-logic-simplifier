@@ -1,4 +1,6 @@
 from collections import defaultdict
+
+from logic_simplifier.expr import Operator, FalseVal
 from logic_simplifier.parser import parse
 from logic_simplifier.perm import ReducedPermutation
 
@@ -176,6 +178,7 @@ class SimplificationTable(object):
             # we want only essential terms
             #   with the given degree
             if min_degree == None or len(reduced) < min_degree:
+                min_degree = len(reduced)
                 min_reduced = reduced
         
         if min_reduced == None: return {}
@@ -246,30 +249,35 @@ class SimplificationTable(object):
         return SimplificationTable(ret)
 
 
-def main():
-    # parsed = parse('~a&b&~c&~d | a&~b&~c&d | a&~b&~c&~d')
-    # parsed = parse('b | ~b')
-    # parsed = parse('b & ~b')
+def simplify_expr(expr):
+    tbl = SimplificationTable.for_expr(expr)
+    tbl.fill_stages()
+    minimal_results = tbl.minimal_results()
     
-    # example from Wikipedia Quine–McCluskey_algorithm
-    # parsed = parse('~a&b&~c&~d | a&~b&~c&~d | a&~b&~c&d | a&~b&c&~d | a&~b&c&d | a&b&~c&~d | a&b&c&~d | a&b&c&d')
+    simplified = None
+    for reduced in minimal_results:
+        expr = reduced.get_reduced().to_expr()
+        
+        if simplified == None: simplified = expr
+        else: simplified = Operator(simplified, '|', expr)
     
-    # example from Wikipedia Petrick's_method
-    parsed = parse('~a&~b&~c | ~a&~b&c | ~a&b&~c | ~a&~b&c | a&b&~c | a&b&c')
-    
-    print(parsed)
-    gv = SimplificationTable.for_expr(parsed)
-    
-    gv.fill_stages()
-    
-    for r in gv.results():
-        print(r)
-    
-    print()
-    
-    minimal = ' | '.join([r._reduced.to_conj() for r in gv.minimal_results()])
-    print(minimal if minimal != '' else '0')
+    return simplified if simplified != None else FalseVal()
+
+
+def simplify(s):
+    return str(simplify_expr(parse(s)))
+
+
+def _test():
+    print(simplify('~a&b&~c&~d | a&~b&~c&~d | a&~b&~c&d | a&~b&c&~d | ' + 
+                   'a&~b&c&d | a&b&~c&~d | a&b&c&~d | a&b&c&d'))
+    print(simplify('~a&~b&~c | ~a&~b&c | ~a&b&~c | ~a&~b&c | a&b&~c | a&b&c'))
+    print(simplify('a | ~a'))
+    print(simplify('a & ~a'))
+    print(simplify('~a&b&~c&~d | a&~b&~c&d | a&~b&~c&~d'))
+    print(simplify('valid'))
+    print(simplify('invalid?'))
 
 
 if __name__ == '__main__':
-    main()
+    _test()

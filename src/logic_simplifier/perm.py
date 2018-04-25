@@ -4,6 +4,7 @@ various permutations.
 
 @author: Kamil Jarosz
 """
+from logic_simplifier.expr import Variable, Negation, Operator, TrueVal
 
 
 class Permutation(object):
@@ -63,6 +64,21 @@ class Permutation(object):
             if v == False: ret += ' & ~' + k
         return '1' if ret == '' else ret[3:]
     
+    def to_expr(self):
+        ret = None
+        for k in sorted(self._val.keys()):
+            v = self._val[k];
+            
+            if v == None: continue
+            
+            if v == True: expr = Variable(k)
+            else: expr = Negation(Variable(k))
+            
+            if ret == None: ret = expr
+            else: ret = Operator(ret, '&', expr)
+        
+        return ret if ret != None else TrueVal()
+    
     def __str__(self):
         ret = ''
         for k in sorted(self._val.keys()):
@@ -75,10 +91,7 @@ class Permutation(object):
         return str(self)
     
     def __eq__(self, p):
-        try:
-            return self._val == p._val
-        except AttributeError:
-            return False
+        return hasattr(p, '_val') and self._val == p._val
     
     def __hash__(self):
         if not hasattr(self, '_computed_hash'):
