@@ -55,11 +55,24 @@ class Permutation(object):
         
         return self._val[key]
     
+    def to_conj(self):
+        ret = ''
+        for k in sorted(self._val.keys()):
+            v = self._val[k];
+            if v == True: ret += ' & ' + k
+            if v == False: ret += ' & ~' + k
+        return '1' if ret == '' else ret[3:]
+    
     def __str__(self):
-        return 'Permutation(' + str(self._val) + ')'
+        ret = ''
+        for k in sorted(self._val.keys()):
+            v = self._val[k];
+            if v == True: ret += k
+            if v == False: ret += '!' + k
+        return ret
     
     def __repr__(self):
-        return 'Permutation(' + repr(self._val) + ')'
+        return str(self)
     
     def __eq__(self, p):
         try:
@@ -153,10 +166,10 @@ class ReducedPermutation(object):
         return ReducedPermutation(self._perms.union(p._perms), Permutation(ret))
     
     def __str__(self):
-        return repr(self)
+        return 'ReducedPermutation(from=' + str(self._perms) + ', to=' + str(self._reduced) + ')'
     
     def __repr__(self):
-        return 'ReducedPermutation(from=' + str(self._perms) + ', to=' + str(self._reduced) + ')'
+        return str(self)
     
     def __eq__(self, p):
         return isinstance(p, ReducedPermutation) \
