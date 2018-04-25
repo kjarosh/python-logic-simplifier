@@ -1,28 +1,41 @@
+"""
+This file provides a Parser class, used to parse a string
+into an expression tree, defined in 'logic_simplifier.expr'.
+"""
+
 from logic_simplifier.expr import Operator, Negation, FalseVal, TrueVal, Variable
 
 
 class Parser(object):
-    # all operators ale left-associative
-    # negation has the highest priority
     _ops = [
         { '=' },  # lowest priority
         { '>' },
         { '|' },
         { '^' },
-        { '&' }
+        { '&' }  # highest priority
     ]
+    """List of sets of operators with given priorities.
     
-    # _data
-    # _pos
+    The n-th element of this list holds a set of operators
+    with their priority equal to n.
+    
+    Elements with lower index have lower priority.
+    All operators are left-associative.
+    """
     
     def __init__(self, data):
         self._data = data
+        "String to parse"
         self._pos = 0
+        "Actual position"
     
     def parse(self):
         parsed = self._parseexpr()
+        
         if self._pos != len(self._data):
+            # not everything has been parsed
             raise RuntimeError('unexpected ' + self._data[self._pos])
+        
         return parsed
     
     def _parseexpr(self):
@@ -100,17 +113,18 @@ class Parser(object):
 
 
 def parse(data):
+    "Parses the given string into an expression tree."
     return Parser(data).parse()
 
 
 def _test_parse(expr):
     try:
-        print(str(expr) + '  ->  ' + str(parse(expr)))
+        print(str(expr).ljust(16) + '  ->  ' + str(parse(expr)))
     except:
-        print(str(expr) + '  ->  ' + 'Invalid syntax')
+        print(str(expr).ljust(16) + '  ->  ' + 'Invalid syntax')
 
 
-if __name__ == '__main__':
+def test():
     _test_parse('a&b')
     _test_parse('a|~b')
     _test_parse('(~a & b) |c')
@@ -120,6 +134,10 @@ if __name__ == '__main__':
     _test_parse('a) & (b |c')
     _test_parse('(a > b) |c')
     _test_parse('a > (b |~c)')
+    _test_parse('abc & def')
+    _test_parse('abc & def *')
+    
+    print()
     
     expr = parse('a & (b) & 1')
     print(expr)
@@ -128,3 +146,7 @@ if __name__ == '__main__':
         'a': True,
         'b': False
     }))
+
+
+if __name__ == '__main__':
+    test()
