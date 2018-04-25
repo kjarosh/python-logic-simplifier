@@ -124,7 +124,7 @@ class Parser(object):
     def _skips(self):
         "Skip space."
         
-        while not self._end() and self._look() == ' ':
+        while not self._end() and self._look().isspace():
             self._pos += 1
 
 
