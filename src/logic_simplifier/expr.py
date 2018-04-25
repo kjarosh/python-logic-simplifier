@@ -1,3 +1,11 @@
+"""
+This file provides expression classes such as:
+
+    Expression, Negation, Operator, Variable,
+    TrueVal and FalseVal
+
+used to describe the parsed expression.
+"""
 
 
 class InvalidOperatorException(Exception):
@@ -11,17 +19,23 @@ class VariableNotFoundException(Exception):
 class Expression(object):
 
     def eval(self, varmap):
+        "Evaluate expression using the given variable mapping."
         raise NotImplementedError
     
     def extract_vars(self):
+        """Extract used variables.
+        
+        Returns the set of every variable identifier used
+        in this expression.
+        """
         return set()
 
 
 class Negation(Expression):
-    # expr
     
     def __init__(self, expr):
         self.expr = expr
+        "Inner expression"
     
     def eval(self, varmap):
         return not self.expr.eval(varmap)
@@ -34,18 +48,19 @@ class Negation(Expression):
 
 
 class Operator(Expression):
-    # left
-    # op
-    # pri
-    # right
-    
+
     def __init__(self, left, op, pri, right):
         self.left = left
+        "Left expression"
         self.op = op
+        "Operator type"
         self.pri = pri
+        "Operator priority"
         self.right = right
+        "Right expression"
     
     def eval(self, varmap):
+        # for lazy evaluation
         p = lambda: self.left.eval(varmap)
         q = lambda: self.right.eval(varmap)
         
@@ -58,7 +73,10 @@ class Operator(Expression):
             raise InvalidOperatorException(self.op)
     
     def extract_vars(self):
-        return self.left.extract_vars().union(self.right.extract_vars())
+        extracted_left = self.left.extract_vars()
+        extracted_right = self.right.extract_vars()
+        
+        return extracted_left.union(extracted_right)
     
     def __str__(self):
         ret = ''
@@ -85,6 +103,7 @@ class Variable(Expression):
     
     def __init__(self, name):
         self.name = name
+        "Variable name"
     
     def eval(self, varmap):
         if self.name in varmap:
