@@ -123,7 +123,7 @@ class SimplificationTable(object):
     
     @classmethod
     def for_expr(cls, expr):
-        positives = Permutation.generate_positives(expr)
+        positives = expr.generate_positives()
         return cls.group_values(positives)
     
     @staticmethod

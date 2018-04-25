@@ -5,7 +5,10 @@ This file provides expression classes such as:
     TrueVal and FalseVal
 
 used to describe the parsed expression.
+
+@author: Kamil Jarosz
 """
+from logic_simplifier.perm import Permutation
 
 
 class InvalidOperatorException(Exception):
@@ -19,7 +22,11 @@ class VariableNotFoundException(Exception):
 class Expression(object):
 
     def eval(self, varmap):
-        "Evaluate expression using the given variable mapping."
+        """Evaluate expression using the given variable mapping.
+        
+        @param varmap: variable mapping in the form { var: val, ... }
+        """
+        
         raise NotImplementedError
     
     def extract_vars(self):
@@ -29,6 +36,13 @@ class Expression(object):
         in this expression.
         """
         return set()
+    
+    def generate_positives(self):
+        "Generate permutations for which this expression evaluates to true."
+        
+        varlist = list(self.extract_vars())
+        for p in Permutation.generate_values(varlist):
+            if self.eval(p.values()): yield p
 
 
 class Negation(Expression):

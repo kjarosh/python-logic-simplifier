@@ -40,10 +40,20 @@ class Permutation(object):
             if v: count += 1
         return count
     
+    def keys(self):
+        "Returns a set of variable names."
+        
+        return self._val.keys()
+    
     def values(self):
         "Returns a mapping var -> val described in __init__."
         
         return self._val.copy()
+    
+    def value(self, key):
+        "Returns a value held by a variable with the given name."
+        
+        return self._val[key]
     
     def __str__(self):
         return 'Permutation(' + str(self._val) + ')'
@@ -75,40 +85,58 @@ class Permutation(object):
     
     @classmethod
     def generate_values(cls, varlist):
+        """Generate all possible values for a list of variables.
+        
+        Example: for ['a', 'b'], we'll get
+         * Permutation({ 'a': False, 'b': False })
+         * Permutation({ 'a': False, 'b': True  })
+         * Permutation({ 'a': True,  'b': False })
+         * Permutation({ 'a': True,  'b': True  })
+        """
+        
         if len(varlist) == 0:
+            # the only possibility is an empty
+            #   permutation
             yield cls.empty()
         else:
             for p in cls.generate_values(varlist[1:]):
                 yield p.append({ varlist[0]: True  })
                 yield p.append({ varlist[0]: False })
-    
-    @classmethod
-    def generate_positives(cls, expr):
-        varlist = list(expr.extract_vars())
-        for p in cls.generate_values(varlist):
-            if expr.eval(p.values()):
-                yield p
 
 
 class ReducedPermutation(object):
-    # _perms -- set of reduced permutations
-    # _reduced -- the reduced form
+    """This class describes a reduced permutation.
+    
+    It contains information about the reduced form as well
+    as the permutations which the form was reduced from.
+    """
     
     def __init__(self, perms, reduced):
         self._perms = perms
+        "A set of initial permutations."
         self._reduced = reduced
+        "The reduced form."
         
         if not isinstance(reduced, Permutation):
             raise ValueError()
     
     def reduce(self, p):
-        keys = set().union(p._reduced._val.keys(), self._reduced._val.keys())
+        """Reduce this permutation with p.
+        
+        @return: the reduced permutation, or None when
+                 reduction is impossible
+        """
+        
+        self_keys = self._reduced.keys()
+        p_keys = p._reduced.keys()
+        
+        keys = self_keys.union(p_keys)
         ret = dict()
         reduced = False
         
         for key in keys:
-            val1 = p._reduced._val[key]
-            val2 = self._reduced._val[key]
+            val1 = p._reduced.value(key)
+            val2 = self._reduced.value(key)
             
             if val1 == val2:
                 ret[key] = val1
