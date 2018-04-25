@@ -106,30 +106,63 @@ class SimplificationTable(object):
         
         return grouped
     
-    def essential_results(self):
-        ret = set()
-        grouped = self.grouped_results()
+    def _max_essential_degree(self, grouped):
+        ret = 0
+        for _, reduced in grouped.items():
+            degree = len(reduced)
+            ret = max(ret, degree)
+        return ret
+    
+    def _exclude_reduced(self, grouped, to_exclude):
+        ret = grouped.copy()
         
-        while True:
-            minterm = None
-            minlen = 0
-            
-            for _, reduced in grouped.items():
-                if len(reduced) != 0 and (len(reduced) < minlen or minlen == 0):
-                    minlen = len(reduced)
-                    minterm = reduced.pop()
-            
-            if minterm == None: break;
-            
-            ret.add(minterm)
-            for _, reduced in grouped.items():
-                reduced.discard(minterm)
-        
-        # check if any left
-        # for _, reduced in grouped.items():
-        #    if len(reduced) != 0: raise NotImplementedError()
+        # search for other permutations
+        #   dependent on the reduced term
+        #   and delete them
+        for perm, reduced in grouped.items():
+            if len(reduced) == 0 or to_exclude in reduced:
+                del ret[perm]
         
         return ret
+    
+    def _extract_essential(self, grouped, degree=1):
+        taken = False
+        for _, reduced in grouped.items():
+            # we want only essential terms
+            #   with the given degree
+            if len(reduced) == degree:
+                taken = True
+                break
+        
+        if not taken: return (None, grouped)
+        
+        # it's an essential term
+        essential = reduced.pop()
+        
+        grouped = self._exclude_reduced(grouped, essential)
+        
+        return (essential, grouped)
+    
+    def _minimal_results_for(self, grouped):
+        ret = set()
+        
+        # while there are permutations
+        while grouped:
+            # search for an essential term
+            essential, grouped = self._extract_essential(grouped)
+            
+            if essential != None:
+                ret.add(essential)
+                continue
+            
+            # no essential terms
+            print(dict(grouped))
+            raise NotImplementedError()
+        
+        return ret
+    
+    def minimal_results(self):
+        return self._minimal_results_for(self.grouped_results())
     
     def __str__(self):
         ret = 'SimplificationTable(\n'
@@ -156,20 +189,27 @@ class SimplificationTable(object):
 
 def main():
     # parsed = parse('~a&b&~c&~d | a&~b&~c&d | a&~b&~c&~d')
+    #parsed = parse('b | ~b')
+    #parsed = parse('b & ~b')
+    
+    # example from Wikipedia Quine–McCluskey_algorithm
     parsed = parse('~a&b&~c&~d | a&~b&~c&~d | a&~b&~c&d | a&~b&c&~d | a&~b&c&d | a&b&~c&~d | a&b&c&~d | a&b&c&d')
+    
+    # example from Wikipedia Petrick's_method
+    parsed = parse('~a&~b&~c&~d | ~a&~b&~c&d | ~a&~b&c&~d | ~a&~b&~c&d | ~a&b&c&~d | ~a&b&c&d')
+    
     print(parsed)
     gv = SimplificationTable.for_expr(parsed)
     
     gv.fill_stages()
     
     for r in gv.results():
-        print(r.get_reduced())
+        print(r)
     
-    return
+    print()
     
-    print(gv.essential_results())
-    for reduced in gv.essential_results():
-        print(reduced._reduced)
+    minimal = ' | '.join([r._reduced.to_conj() for r in gv.minimal_results()])
+    print(minimal if minimal != '' else '0')
 
 
 if __name__ == '__main__':
