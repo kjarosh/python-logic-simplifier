@@ -1,2 +1,2 @@
 #!/bin/sh
-python3 src/client.py "$@"
+cd src && python3 -m logic_simplifier "$@"
